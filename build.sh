@@ -17,6 +17,6 @@ cp "$ROOT/src/meta.xml" "$STAGE/"
 done)
 
 rm -f "$OUT"
-# .wotmod archives must be stored uncompressed, with directory entries.
-(cd "$STAGE" && find . -mindepth 1 | sed 's:^\./::' | sort | zip -q -0 "$OUT" -@)
+# The game reads .wotmod archives only when stored uncompressed, with directory entries and no extra fields.
+(cd "$STAGE" && find . -mindepth 1 | sed 's:^\./::' | sort | zip -q -0 -X "$OUT" -@)
 echo "$OUT"
