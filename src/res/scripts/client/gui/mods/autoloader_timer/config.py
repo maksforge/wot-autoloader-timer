@@ -18,6 +18,7 @@ DEFAULTS = {
         'loaded': '8BE15F',
         'loading': 'FFD34D',
         'queued': 'E6E6E6',
+        'shellTime': 'A0A0A0',
     },
 }
 

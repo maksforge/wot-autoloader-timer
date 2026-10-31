@@ -63,6 +63,9 @@ class FakeAmmo(object):
     def __init__(self):
         self.gun = _Obj(clip=_Obj(size=3), autoReload=_Obj(reloadTime=(12.0, 13.0, 15.0)))
         self.gun.hasAutoReload = lambda: True
+        self.gun.hasShellChangeFactor = lambda: True
+        self.gun.getShellChangeFactor = lambda: 0.5
+        self.shell_change_time = 0.0
         self.shells = (30, 1)
         self.clip_state = FakeState(4.0, 11.7)
 
@@ -77,6 +80,9 @@ class FakeAmmo(object):
 
     def getPartiallyReloadingClipState(self):
         return self.clip_state
+
+    def getShellChangeTime(self):
+        return self.shell_change_time
 
     def getGunReloadingState(self):
         return FakeState(0.0, 0.0)
@@ -160,8 +166,12 @@ class ModSmokeTest(unittest.TestCase):
 
         self.ammo.shells = (30, 3)
         self.ammo.clip_state = FakeState(0.0, 0.0)
+        self.ammo.shell_change_time = 6.75
         self.callbacks[-1]()
-        self.assertIn("<font color='#8BE15F'>3/3</font>", self.label()['text'])
+        text = self.label()['text']
+        self.assertIn("<font color='#8BE15F'>3/3</font>", text)
+        self.assertIn("<font color='#A0A0A0'>13.5</font>", text)
+        self.assertIn("<font color='#A0A0A0'>10.8</font>", text)
 
         self.ammo.gun.hasAutoReload = lambda: False
         self.callbacks[-1]()

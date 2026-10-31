@@ -34,6 +34,10 @@ def shell_load_time(reload_times, clip_size, shells_in_clip, factor):
     return reload_times[index] * factor
 
 
+def factor_from_empty_magazine_time(reload_times, empty_magazine_time):
+    return empty_magazine_time / reload_times[-1]
+
+
 def reload_factor(reload_times, clip_size, first_base_time, base_time, shells_in_clip):
     if first_base_time > 0:
         return first_base_time / reload_times[-1]
@@ -47,13 +51,13 @@ def build_schedule(clip_size, shells_in_clip, shells_total, reload_times, factor
     slots = []
     ready_in = 0.0
     for number in range(1, clip_size + 1):
+        own_time = shell_load_time(reload_times, clip_size, number - 1, factor)
         if number <= shells_in_clip:
-            slots.append(Slot(number, LOADED))
+            slots.append(Slot(number, LOADED, own_time))
             continue
         if number > loadable:
-            slots.append(Slot(number, NO_AMMO))
+            slots.append(Slot(number, NO_AMMO, own_time))
             continue
-        own_time = shell_load_time(reload_times, clip_size, number - 1, factor)
         if number == shells_in_clip + 1:
             ready_in = current_left
             slots.append(Slot(number, LOADING, own_time, ready_in))

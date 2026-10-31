@@ -42,7 +42,7 @@ class BuildScheduleTest(unittest.TestCase):
     def test_one_shell_loaded_two_pending(self):
         slots = build_schedule(3, 1, 30, RINOCERONTE_LIKE, 1.0, 4.0)
         self.assertEqual(slots, [
-            Slot(1, LOADED),
+            Slot(1, LOADED, 15.0),
             Slot(2, LOADING, 13.0, 4.0),
             Slot(3, QUEUED, 12.0, 16.0),
         ])
@@ -52,9 +52,10 @@ class BuildScheduleTest(unittest.TestCase):
         slots = build_schedule(3, 0, 30, RINOCERONTE_LIKE, 1.0, 15.0)
         self.assertEqual([s.ready_in for s in slots], [15.0, 28.0, 40.0])
 
-    def test_full_magazine(self):
-        slots = build_schedule(3, 3, 30, RINOCERONTE_LIKE, 1.0, 0.0)
+    def test_full_magazine_keeps_each_shell_load_time(self):
+        slots = build_schedule(3, 3, 30, RINOCERONTE_LIKE, 0.9, 0.0)
         self.assertEqual([s.state for s in slots], [LOADED] * 3)
+        self.assertEqual([round(s.own_time, 2) for s in slots], [13.5, 11.7, 10.8])
         self.assertEqual(full_in(slots), 0.0)
 
     def test_running_out_of_ammo(self):

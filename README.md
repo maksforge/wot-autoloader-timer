@@ -8,7 +8,7 @@ A World of Tanks mod that shows the load time of **every shell** in an autoreloa
 
 - **1/3**: shells in the magazine now.
 - **Each number**: seconds until that shell is loaded, counted from now. The yellow one is loading now.
-- When the magazine is full it shows just **3/3** in green.
+- When the magazine is full it shows **3/3** in green, then each shell's own load time at your current reload speed in grey, for example `3/3  |  13.5  |  11.7  |  10.8`.
 
 The times always use your current reload speed. They're recalculated every 0.1 s from the reload time the server sends for the shell being loaded, so a damaged ammo rack, stun, or a crew member knocked out changes them right away. The rest of the magazine is predicted from the gun's per-shell reload table at that same speed.
 
@@ -27,7 +27,7 @@ The first battle writes `mods/configs/autoloader_timer/config.json`:
 | `x`, `y` | `180`, `40` | Offset from the screen centre |
 | `fontSize` | `16` | Text size |
 | `hideWhenFull` | `false` | Hide the panel while the magazine is full |
-| `colors` | | Hex colours for each row state |
+| `colors` | | Hex colours for the count, the loading shell, the queued shells and the per-shell times |
 
 To move the panel, hold Ctrl to show the cursor and drag it. The new position is saved.
 

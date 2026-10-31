@@ -88,6 +88,10 @@ class AutoloaderTimer(object):
         if clip_state.isReloading() and clip_state.getBaseValue() > 0:
             self._factor = schedule.reload_factor(reload_times, clip_size, 0.0, clip_state.getBaseValue(), shells_in_clip)
             return clip_state.getTimeLeft()
+        gun = ammo.getGunSettings()
+        if ammo.getShellChangeTime() > 0 and gun.hasShellChangeFactor():
+            empty_magazine_time = ammo.getShellChangeTime() / gun.getShellChangeFactor()
+            self._factor = schedule.factor_from_empty_magazine_time(reload_times, empty_magazine_time)
         gun_state = ammo.getGunReloadingState()
         if shells_in_clip == 0 and gun_state.isReloading():
             return gun_state.getTimeLeft()
