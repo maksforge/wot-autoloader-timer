@@ -134,6 +134,7 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
 
     class ChatCommandsController(object):
         sent = []
+        cooldown = False
 
         def sendReloadingCommand(self):
             ChatCommandsController.sent.append('game reload command')
@@ -141,7 +142,8 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     module('gui.battle_control.controllers.chat_cmd_ctrl', ChatCommandsController=ChatCommandsController)
     module('messenger').__path__ = []
     module('messenger.m_constants', PROTO_TYPE=_Obj(BW_CHAT2=2))
-    team_chat = _Obj(isBroadcastInCooldown=lambda: False,
+    module('messenger.ext', isBattleChatEnabled=lambda: True)
+    team_chat = _Obj(isBroadcastInCooldown=lambda: ChatCommandsController.cooldown,
                      broadcast=lambda text, channel: ChatCommandsController.sent.append((text, channel)))
 
     class _ProtoGetter(object):
@@ -194,9 +196,10 @@ class ModSmokeTest(unittest.TestCase):
 
         chat_ctrl = sys.modules['gui.battle_control.controllers.chat_cmd_ctrl'].ChatCommandsController
         chat_ctrl().sendReloadingCommand()
-        self.assertEqual(chat_ctrl.sent, ['game reload command'])
-        self.callbacks.pop()()
-        self.assertEqual(chat_ctrl.sent, ['game reload command', ('Magazine 1/3, full in 15 s', 0)])
+        self.assertEqual(chat_ctrl.sent, [('Ready to fire! Magazine 1/3, full in 15 s', 0)])
+        chat_ctrl.cooldown = True
+        chat_ctrl().sendReloadingCommand()
+        self.assertEqual(chat_ctrl.sent[-1], 'game reload command')
 
         self.ammo.shells = (30, 3)
         self.ammo.clip_state = FakeState(0.0, 0.0)

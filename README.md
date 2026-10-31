@@ -14,14 +14,15 @@ The times always use your current reload speed. They're recalculated every 0.1 s
 
 ## Reload quick command
 
-When you use the reload quick command in an autoreloader (its own key, or Z → "I'm reloading"), the game still sends its usual line, for example "Ready to fire! Shells in the magazine: 1 item(s).". One second later (the game refuses chat sent within 0.5 s of a quick command) the mod adds one team chat line with the magazine status:
+In an autoreloader, the reload quick command (its own key, or Z → "I'm reloading") sends one team chat line with the whole magazine instead of the game's line, which only knows about the next shell:
 
 ```
-Magazine 1/4, full in 35 s
-Magazine 0/4, first shell 9 s, full in 35 s
+Ready to fire! Magazine 1/4, full in 35 s
+Reloading! First shell 9 s, full in 35 s
+Ready to fire! Magazine 4/4
 ```
 
-Nothing is added when the magazine is already full. Turn it off with `reloadChatLine`.
+Allies don't get the game's reload icon over your tank for that command. If team chat is unavailable (chat turned off, a chat ban, or the chat cooldown), or the ammo rack is empty, the game's own command goes out as usual. Other tanks are not affected. Turn it off with `reloadChatLine`.
 
 ## Install
 
@@ -38,7 +39,7 @@ The first battle writes `mods/configs/autoloader_timer/config.json`:
 | `x`, `y` | `0`, `60` | Offset from the crosshair, which the line follows across arcade, sniper and arty views |
 | `fontSize` | `14` | Text size |
 | `hideWhenFull` | `false` | Hide the panel while the magazine is full |
-| `reloadChatLine` | `true` | Add the magazine status line to the reload quick command |
+| `reloadChatLine` | `true` | Replace the reload quick command with the magazine status line in autoreloaders |
 | `colors` | | Hex colours for the count, a full magazine, the loading shell, the queued shells and the per-shell times |
 
 To move the panel, hold Ctrl to show the cursor and drag it. The new position is saved.
