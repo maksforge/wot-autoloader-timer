@@ -14,6 +14,9 @@ def init():
         from gui.mods.autoloader_timer.timer import AutoloaderTimer
         _timer = AutoloaderTimer()
         _timer.start()
+        if _timer.settings['enabled'] and _timer.settings['reloadChatLine']:
+            from gui.mods.autoloader_timer import reload_chat
+            reload_chat.install(_timer.slots)
     except Exception:
         LOG_CURRENT_EXCEPTION()
 

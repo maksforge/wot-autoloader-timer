@@ -126,6 +126,32 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     mods = module('gui.mods')
     mods.__path__ = [MODS_DIR]
     gui.mods = mods
+    battle_control = module('gui.battle_control', avatar_getter=module(
+        'gui.battle_control.avatar_getter', isPlayerOnArena=lambda: True, isVehicleAlive=lambda: True))
+    battle_control.__path__ = []
+    controllers = module('gui.battle_control.controllers')
+    controllers.__path__ = []
+
+    class ChatCommandsController(object):
+        sent = []
+
+        def sendReloadingCommand(self):
+            ChatCommandsController.sent.append('game reload command')
+
+    module('gui.battle_control.controllers.chat_cmd_ctrl', ChatCommandsController=ChatCommandsController)
+    module('messenger').__path__ = []
+    module('messenger.m_constants', PROTO_TYPE=_Obj(BW_CHAT2=2))
+    team_chat = _Obj(isBroadcastInCooldown=lambda: False,
+                     broadcast=lambda text, channel: ChatCommandsController.sent.append((text, channel)))
+
+    class _ProtoGetter(object):
+        def __init__(self, _):
+            pass
+
+        def __call__(self, fn):
+            return property(lambda self: _Obj(arenaChat=team_chat))
+
+    module('messenger.proto', proto_getter=_ProtoGetter)
     gambiter = module('gui.mods.gambiter', g_guiFlash=guiflash)
     gambiter.__path__ = []
     mods.gambiter = gambiter
@@ -161,10 +187,14 @@ class ModSmokeTest(unittest.TestCase):
         text = self.label()['text']
         self.assertTrue(self.label()['visible'])
         self.assertIn('1/3', text)
-        self.assertNotIn('4.0', text)
+        self.assertIn("<font color='#FCAF1A'>4.0</font>", text)
         self.assertEqual((self.label()['x'], self.label()['y']), (0, -35))
         self.assertIn("<font color='#D8D8D8'>14.8</font>", text)
         self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
+
+        chat_ctrl = sys.modules['gui.battle_control.controllers.chat_cmd_ctrl'].ChatCommandsController
+        chat_ctrl().sendReloadingCommand()
+        self.assertEqual(chat_ctrl.sent, ['game reload command', ('Magazine 1/3, full in 15 s', 0)])
 
         self.ammo.shells = (30, 3)
         self.ammo.clip_state = FakeState(0.0, 0.0)

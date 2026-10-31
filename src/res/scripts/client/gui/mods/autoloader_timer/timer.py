@@ -36,6 +36,10 @@ class AutoloaderTimer(object):
             self._view.destroy()
             self._view = None
 
+    @property
+    def settings(self):
+        return self._settings
+
     def _on_moved(self):
         config.save(self._settings)
 
@@ -76,6 +80,14 @@ class AutoloaderTimer(object):
         return (int(x - width / scale / 2), int(y - height / scale / 2))
 
     def _segments(self):
+        slots = self.slots()
+        if slots is None:
+            return None
+        if self._settings['hideWhenFull'] and all(slot.state == schedule.LOADED for slot in slots):
+            return None
+        return format_segments(slots, self._settings)
+
+    def slots(self):
         ammo = self._sessionProvider.shared.ammo
         if ammo is None:
             return None
@@ -87,11 +99,8 @@ class AutoloaderTimer(object):
             return None
         clip_size = gun.clip.size
         reload_times = gun.autoReload.reloadTime
-        if shells_in_clip >= clip_size and self._settings['hideWhenFull']:
-            return None
         current_left = self._current_shell_time_left(ammo, reload_times, clip_size, shells_in_clip)
-        slots = schedule.build_schedule(clip_size, shells_in_clip, shells_total, reload_times, self._factor, current_left)
-        return format_segments(slots, self._settings)
+        return schedule.build_schedule(clip_size, shells_in_clip, shells_total, reload_times, self._factor, current_left)
 
     def _current_shell_time_left(self, ammo, reload_times, clip_size, shells_in_clip):
         clip_state = ammo.getPartiallyReloadingClipState()

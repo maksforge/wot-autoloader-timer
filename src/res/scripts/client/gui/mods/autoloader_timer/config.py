@@ -13,9 +13,11 @@ DEFAULTS = {
     'y': 60,
     'fontSize': 14,
     'hideWhenFull': False,
+    'reloadChatLine': True,
     'colors': {
         'count': 'D8D8D8',
         'loaded': 'C7FE48',
+        'loading': 'FCAF1A',
         'queued': 'D8D8D8',
         'shellTime': 'A8A8A8',
     },
