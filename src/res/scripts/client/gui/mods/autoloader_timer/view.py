@@ -3,7 +3,7 @@ from gui.mods.gambiter.flash import COMPONENT_ALIGN, COMPONENT_EVENT, COMPONENT_
 
 from . import schedule
 
-ALIAS_PREFIX = 'autoloader_timer.line'
+ALIAS_PREFIX = 'maksforgeAutoloaderTimerLine'
 MAX_LINES = 12
 
 _STATE_COLOR_KEYS = {

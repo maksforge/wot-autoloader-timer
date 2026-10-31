@@ -147,7 +147,7 @@ class ModSmokeTest(unittest.TestCase):
     def visible_texts(self):
         lines = []
         for index in range(12):
-            props = self.guiflash.components.get('autoloader_timer.line%d' % index, {})
+            props = self.guiflash.components.get('maksforgeAutoloaderTimerLine%d' % index, {})
             if props.get('visible'):
                 lines.append(props['text'])
         return lines
