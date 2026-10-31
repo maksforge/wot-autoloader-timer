@@ -135,6 +135,8 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     class ChatCommandsController(object):
         sent = []
         cooldown = False
+        chat_enabled = True
+        broadcast_fails = False
 
         def sendReloadingCommand(self):
             ChatCommandsController.sent.append('game reload command')
@@ -142,9 +144,14 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     module('gui.battle_control.controllers.chat_cmd_ctrl', ChatCommandsController=ChatCommandsController)
     module('messenger').__path__ = []
     module('messenger.m_constants', PROTO_TYPE=_Obj(BW_CHAT2=2))
-    module('messenger.ext', isBattleChatEnabled=lambda: True)
-    team_chat = _Obj(isBroadcastInCooldown=lambda: ChatCommandsController.cooldown,
-                     broadcast=lambda text, channel: ChatCommandsController.sent.append((text, channel)))
+    module('messenger.ext', isBattleChatEnabled=lambda: ChatCommandsController.chat_enabled)
+
+    def broadcast(text, channel):
+        if ChatCommandsController.broadcast_fails:
+            raise RuntimeError('broadcast failed')
+        ChatCommandsController.sent.append((text, channel))
+
+    team_chat = _Obj(isBroadcastInCooldown=lambda: ChatCommandsController.cooldown, broadcast=broadcast)
 
     class _ProtoGetter(object):
         def __init__(self, _):
@@ -163,9 +170,11 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
            COMPONENT_EVENT=_Obj(UPDATED=_Event()))
 
 
-class ModSmokeTest(unittest.TestCase):
+class _StubbedGameTest(unittest.TestCase):
 
     def setUp(self):
+        for name in [name for name in sys.modules if name.startswith('gui.mods.')]:
+            del sys.modules[name]
         self.cwd = os.getcwd()
         self.tmp = tempfile.mkdtemp()
         os.chdir(self.tmp)
@@ -178,6 +187,9 @@ class ModSmokeTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.cwd)
         shutil.rmtree(self.tmp)
+
+
+class ModSmokeTest(_StubbedGameTest):
 
     def label(self):
         return self.guiflash.components.get('maksforgeAutoloaderTimer', {})
@@ -209,12 +221,64 @@ class ModSmokeTest(unittest.TestCase):
         self.assertIn("<font color='#C7FE48'>3/3</font>", text)
         self.assertLess(text.index('>10.8<'), text.index('>11.7<'))
         self.assertLess(text.index('>11.7<'), text.index('>13.5<'))
+        chat_ctrl.cooldown = False
+        chat_ctrl().sendReloadingCommand()
+        self.assertEqual(chat_ctrl.sent[-1], ('Ready to fire! Magazine 3/3', 0))
 
         self.ammo.gun.hasAutoReload = lambda: False
         self.callbacks[-1]()
         self.assertFalse(self.label()['visible'])
         mod.fini()
         self.assertEqual(self.guiflash.components, {})
+
+
+def _slots(*states_and_times):
+    schedule = sys.modules['gui.mods.autoloader_timer.schedule']
+    return [schedule.Slot(number, state, ready_in=ready_in)
+            for number, (state, ready_in) in enumerate(states_and_times, 1)]
+
+
+class ReloadChatTest(_StubbedGameTest):
+
+    def setUp(self):
+        super(ReloadChatTest, self).setUp()
+        self.reload_chat = importlib.import_module('gui.mods.autoloader_timer.reload_chat')
+        self.chat_ctrl = sys.modules['gui.battle_control.controllers.chat_cmd_ctrl'].ChatCommandsController
+        self.slots = []
+        self.reload_chat.install(lambda: self.slots)
+
+    def press_reload(self):
+        self.chat_ctrl().sendReloadingCommand()
+        return self.chat_ctrl.sent
+
+    def test_empty_magazine_reports_first_shell_and_full_magazine(self):
+        self.slots = _slots(('loading', 8.2), ('queued', 20.0), ('queued', 34.5))
+        self.assertEqual(self.press_reload(), [('Reloading! First shell 9 s, full in 35 s', 0)])
+
+    def test_rack_that_cannot_fill_the_magazine_reports_how_far_it_gets(self):
+        self.slots = _slots(('loaded', 0.0), ('loading', 8.2), ('no_ammo', 0.0), ('no_ammo', 0.0))
+        self.assertEqual(self.press_reload(), [('Ready to fire! Magazine 1/4, 2/4 in 9 s', 0)])
+
+    def test_empty_magazine_with_short_rack_reports_how_far_it_gets(self):
+        self.slots = _slots(('loading', 4.0), ('queued', 15.2), ('no_ammo', 0.0))
+        self.assertEqual(self.press_reload(), [('Reloading! First shell 4 s, 2/3 in 16 s', 0)])
+
+    def test_out_of_shells_sends_game_command(self):
+        self.slots = _slots(('no_ammo', 0.0), ('no_ammo', 0.0), ('no_ammo', 0.0))
+        self.assertEqual(self.press_reload(), ['game reload command'])
+
+    def test_chat_disabled_sends_game_command(self):
+        self.slots = _slots(('loaded', 0.0), ('loading', 8.2), ('queued', 20.0))
+        self.chat_ctrl.chat_enabled = False
+        self.assertEqual(self.press_reload(), ['game reload command'])
+
+    def test_error_in_magazine_line_sends_game_command_once(self):
+        logged = []
+        self.reload_chat.LOG_CURRENT_EXCEPTION = lambda: logged.append(sys.exc_info()[0])
+        self.slots = _slots(('loaded', 0.0), ('loading', 8.2), ('queued', 20.0))
+        self.chat_ctrl.broadcast_fails = True
+        self.assertEqual(self.press_reload(), ['game reload command'])
+        self.assertEqual(logged, [RuntimeError])
 
 
 if __name__ == '__main__':
