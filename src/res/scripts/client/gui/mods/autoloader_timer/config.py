@@ -10,13 +10,12 @@ CONFIG_PATH = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
     'enabled': True,
     'x': 0,
-    'y': 145,
+    'y': 60,
     'fontSize': 14,
     'hideWhenFull': False,
     'colors': {
         'count': 'D8D8D8',
         'loaded': 'C7FE48',
-        'loading': 'FCAF1A',
         'queued': 'D8D8D8',
         'shellTime': 'A8A8A8',
     },

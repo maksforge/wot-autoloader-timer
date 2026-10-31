@@ -3,11 +3,11 @@
 A World of Tanks mod that shows the load time of **every shell** in an autoreloader magazine (Italian tanks and any other gun with the `autoreload` mechanic), not just the one that's loading now.
 
 ```
-1/3   4.0   14.8
+1/4   16.2   26.7   35.5
 ```
 
-- **1/3**: shells in the magazine now.
-- **Each number**: seconds until that shell is loaded, counted from now. The yellow one is loading now.
+- **1/4**: shells in the magazine now.
+- **Each number**: seconds until each shell queued behind the loading one is ready, counted from now. The loading shell itself is left out, because the game's aiming circle already shows it.
 - When the magazine is full it shows **3/3** in green, then each shell's own load time at your current reload speed in grey, for example `3/3   13.5   11.7   10.8`.
 
 The times always use your current reload speed. They're recalculated every 0.1 s from the reload time the server sends for the shell being loaded, so a damaged ammo rack, stun, or a crew member knocked out changes them right away. The rest of the magazine is predicted from the gun's per-shell reload table at that same speed.
@@ -24,10 +24,10 @@ The first battle writes `mods/configs/autoloader_timer/config.json`:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `enabled` | `true` | Turns the mod off without uninstalling it |
-| `x`, `y` | `0`, `145` | Offset from the screen centre (default: under the aiming circle) |
+| `x`, `y` | `0`, `60` | Offset from the crosshair, which the line follows across arcade, sniper and arty views |
 | `fontSize` | `14` | Text size |
 | `hideWhenFull` | `false` | Hide the panel while the magazine is full |
-| `colors` | | Hex colours for the count, the loading shell, the queued shells and the per-shell times |
+| `colors` | | Hex colours for the count, a full magazine, the queued shells and the per-shell times |
 
 To move the panel, hold Ctrl to show the cursor and drag it. The new position is saved.
 

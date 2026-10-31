@@ -63,7 +63,17 @@ class AutoloaderTimer(object):
             self._view.hide()
 
     def _render(self):
+        self._view.set_anchor(*self._crosshair_offset())
         self._view.show(self._segments())
+
+    def _crosshair_offset(self):
+        crosshair = self._sessionProvider.shared.crosshair
+        if crosshair is None:
+            return (0, 0)
+        scale = max(crosshair.getScaleFactor(), 1.0)
+        width, height = crosshair.getSize()
+        x, y = crosshair.getDisaredPosition()
+        return (int(x - width / scale / 2), int(y - height / scale / 2))
 
     def _segments(self):
         ammo = self._sessionProvider.shared.ammo

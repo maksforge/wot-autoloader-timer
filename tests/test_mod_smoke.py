@@ -107,7 +107,8 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     module('debug_utils', LOG_CURRENT_EXCEPTION=lambda: (_ for _ in ()).throw(sys.exc_info()[1]),
            LOG_ERROR=lambda *a: None)
 
-    provider = _Obj(shared=_Obj(ammo=ammo))
+    crosshair = _Obj(getScaleFactor=lambda: 1.0, getSize=lambda: (2560, 1440), getDisaredPosition=lambda: (1280, 625))
+    provider = _Obj(shared=_Obj(ammo=ammo, crosshair=crosshair))
 
     class _Descriptor(object):
         def __init__(self, _):
@@ -160,7 +161,8 @@ class ModSmokeTest(unittest.TestCase):
         text = self.label()['text']
         self.assertTrue(self.label()['visible'])
         self.assertIn('1/3', text)
-        self.assertIn("<font color='#FCAF1A'>4.0</font>", text)
+        self.assertNotIn('4.0', text)
+        self.assertEqual((self.label()['x'], self.label()['y']), (0, -35))
         self.assertIn("<font color='#D8D8D8'>14.8</font>", text)
         self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
 

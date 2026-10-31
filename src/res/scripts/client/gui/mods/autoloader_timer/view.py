@@ -17,9 +17,7 @@ def format_segments(slots, settings):
         return segments + [('%.1f' % slot.own_time, colors['shellTime']) for slot in slots]
     segments = [('%d/%d' % (loaded, len(slots)), colors['count'])]
     for slot in slots:
-        if slot.state == schedule.LOADING:
-            segments.append(('%.1f' % max(0.0, slot.ready_in), colors['loading']))
-        elif slot.state == schedule.QUEUED:
+        if slot.state == schedule.QUEUED:
             segments.append(('%.1f' % max(0.0, slot.ready_in), colors['queued']))
     return segments
 
@@ -30,6 +28,7 @@ class PanelView(object):
         self._settings = settings
         self._on_moved = on_moved
         self._shown = None
+        self._anchor = (0, 0)
         props = {
             'text': '',
             'isHtml': True,
@@ -38,9 +37,8 @@ class PanelView(object):
             'alignY': COMPONENT_ALIGN.CENTER,
             'glowfilter': _SHADOW,
             'drag': True,
-            'x': settings['x'],
-            'y': settings['y'],
         }
+        props.update(self._position())
         g_guiFlash.createComponent(ALIAS, COMPONENT_TYPE.LABEL, props)
         COMPONENT_EVENT.UPDATED += self._on_component_updated
 
@@ -61,6 +59,15 @@ class PanelView(object):
     def hide(self):
         self.show(None)
 
+    def set_anchor(self, x, y):
+        if (x, y) == self._anchor:
+            return
+        self._anchor = (x, y)
+        g_guiFlash.updateComponent(ALIAS, self._position())
+
+    def _position(self):
+        return {'x': self._anchor[0] + self._settings['x'], 'y': self._anchor[1] + self._settings['y']}
+
     def _html(self, segments):
         parts = ["<font color='#%s'>%s</font>" % (color, text) for text, color in segments]
         separator = "<font color='#%s'>%s</font>" % (self._settings['colors']['count'], SEPARATOR)
@@ -69,6 +76,6 @@ class PanelView(object):
     def _on_component_updated(self, alias, props):
         if alias != ALIAS or 'x' not in props or 'y' not in props:
             return
-        self._settings['x'] = int(props['x'])
-        self._settings['y'] = int(props['y'])
+        self._settings['x'] = int(props['x']) - self._anchor[0]
+        self._settings['y'] = int(props['y']) - self._anchor[1]
         self._on_moved()
