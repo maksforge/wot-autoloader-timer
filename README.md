@@ -14,7 +14,7 @@ The times always use your current reload speed. They're recalculated every 0.1 s
 
 ## Reload quick command
 
-When you use the game's reload quick command in an autoreloader, the game still sends its usual line, for example "Ready to fire! Shells in the magazine: 1 item(s).". The mod then adds one team chat line with the magazine status:
+When you use the reload quick command in an autoreloader (the R key binding or Z → "I'm reloading"), the game still sends its usual line, for example "Ready to fire! Shells in the magazine: 1 item(s).". One second later (the game refuses chat sent within 0.5 s of a quick command) the mod adds one team chat line with the magazine status:
 
 ```
 Magazine 1/4, full in 35 s

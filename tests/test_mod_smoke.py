@@ -194,6 +194,8 @@ class ModSmokeTest(unittest.TestCase):
 
         chat_ctrl = sys.modules['gui.battle_control.controllers.chat_cmd_ctrl'].ChatCommandsController
         chat_ctrl().sendReloadingCommand()
+        self.assertEqual(chat_ctrl.sent, ['game reload command'])
+        self.callbacks.pop()()
         self.assertEqual(chat_ctrl.sent, ['game reload command', ('Magazine 1/3, full in 15 s', 0)])
 
         self.ammo.shells = (30, 3)

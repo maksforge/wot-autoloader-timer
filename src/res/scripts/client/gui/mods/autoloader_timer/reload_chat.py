@@ -1,5 +1,6 @@
 import math
 
+import BigWorld
 from debug_utils import LOG_CURRENT_EXCEPTION
 from gui.battle_control import avatar_getter
 from gui.battle_control.controllers.chat_cmd_ctrl import ChatCommandsController
@@ -9,6 +10,7 @@ from messenger.proto import proto_getter
 from . import schedule
 
 TEAM_CHANNEL = 0
+AFTER_QUICK_COMMAND_SECONDS = 1.0
 
 
 class _TeamChat(object):
@@ -43,8 +45,7 @@ def install(get_slots):
     original = ChatCommandsController.sendReloadingCommand
     team_chat = _TeamChat()
 
-    def sendReloadingCommand(self):
-        original(self)
+    def send_magazine_status():
         try:
             if not avatar_getter.isPlayerOnArena() or not avatar_getter.isVehicleAlive():
                 return
@@ -54,5 +55,10 @@ def install(get_slots):
                 team_chat.send(text)
         except Exception:
             LOG_CURRENT_EXCEPTION()
+
+    def sendReloadingCommand(self):
+        original(self)
+        # The game rejects a chat message sent within 0.5 s of a quick command.
+        BigWorld.callback(AFTER_QUICK_COMMAND_SECONDS, send_magazine_status)
 
     ChatCommandsController.sendReloadingCommand = sendReloadingCommand
