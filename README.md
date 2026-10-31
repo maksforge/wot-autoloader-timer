@@ -1,0 +1,51 @@
+# Autoloader Shell Timer
+
+A World of Tanks mod that shows the load time of **every shell** in an autoreloader magazine (Italian tanks and any other gun with the `autoreload` mechanic), not just the one that's loading now.
+
+```
+Autoloader 1/3   full in 14.8s
+#1  ready
+#2  4.0s  (11.7s)
+#3  14.8s  (10.8s)
+```
+
+- **#N  ready**: the shell is already in the magazine.
+- **#N  4.0s**: time until that shell is loaded and can be fired. Every row counts from now.
+- **(11.7s)**: how long that one shell takes to load on its own.
+- **full in**: time until the whole magazine is loaded.
+
+Times use your real reload speed: crew, rammer, food, stun and so on. The mod reads the speed from the shell that's loading now and applies the gun's per-shell reload table to the shells after it.
+
+## Install
+
+1. Install [GUIFlash](https://github.com/CH4MPi/GUIFlash) (`gambiter.guiflash_*.wotmod`). Most modpacks include it.
+2. Copy `maksforge.autoloader_timer_<version>.wotmod` into `World_of_Tanks/mods/<game version>/`.
+
+## Settings
+
+The first battle writes `mods/configs/autoloader_timer/config.json`:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | Turns the mod off without uninstalling it |
+| `x`, `y` | `180`, `40` | Offset from the screen centre |
+| `fontSize`, `lineHeight` | `16`, `20` | Text size and row spacing |
+| `showOwnTime` | `true` | Show the per-shell time in brackets |
+| `hideWhenFull` | `false` | Hide the panel while the magazine is full |
+| `colors` | | Hex colours for each row state |
+
+To move the panel, hold Ctrl to show the cursor and drag the header line. The new position is saved.
+
+## Build
+
+Needs Python 2.7, the game's script runtime (for example `pyenv install 2.7.18`).
+
+```sh
+./build.sh                                   # dist/maksforge.autoloader_timer_<version>.wotmod
+python2.7 tests/test_schedule.py
+python2.7 tests/test_mod_smoke.py
+```
+
+## How it works
+
+`gun.autoreload.reloadTime` holds one base time per magazine slot. The first entry is the shell that fills the magazine, and the last is the shell loaded into an empty one. Each frame, the mod reads the shell loading now from the game's `AmmoController`. It takes the remaining time from the server, works out your reload factor from that shell's base time, and adds the scaled time of each shell after it.

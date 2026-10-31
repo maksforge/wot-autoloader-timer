@@ -1,0 +1,176 @@
+"""Loads the mod against stubbed game modules and renders one frame (run with Python 2.7)."""
+import importlib
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
+MODS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'res', 'scripts', 'client', 'gui', 'mods')
+
+
+class _Event(object):
+
+    def __init__(self):
+        self.handlers = []
+
+    def __iadd__(self, handler):
+        self.handlers.append(handler)
+        return self
+
+    def __isub__(self, handler):
+        self.handlers.remove(handler)
+        return self
+
+    def __call__(self, *args):
+        for handler in list(self.handlers):
+            handler(*args)
+
+
+class FakeGuiFlash(object):
+
+    def __init__(self):
+        self.components = {}
+
+    def createComponent(self, alias, compType, props=None, battle=True, lobby=False):
+        self.components[alias] = dict(props or {})
+
+    def updateComponent(self, alias, props, params=None):
+        self.components[alias].update(props)
+
+    def deleteComponent(self, alias):
+        del self.components[alias]
+
+
+class FakeState(object):
+
+    def __init__(self, left, base):
+        self.left, self.base = left, base
+
+    def isReloading(self):
+        return self.left > 0
+
+    def getTimeLeft(self):
+        return self.left
+
+    def getBaseValue(self):
+        return self.base
+
+
+class FakeAmmo(object):
+
+    def __init__(self):
+        self.gun = _Obj(clip=_Obj(size=3), autoReload=_Obj(reloadTime=(12.0, 13.0, 15.0)))
+        self.gun.hasAutoReload = lambda: True
+        self.shells = (30, 1)
+        self.clip_state = FakeState(4.0, 11.7)
+
+    def getGunSettings(self):
+        return self.gun
+
+    def getCurrentShellCD(self):
+        return 1234
+
+    def getCurrentShells(self):
+        return self.shells
+
+    def getPartiallyReloadingClipState(self):
+        return self.clip_state
+
+    def getGunReloadingState(self):
+        return FakeState(0.0, 0.0)
+
+
+class _Obj(object):
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+def _install_stubs(guiflash, ammo, player_events, callbacks):
+    def module(name, **attrs):
+        mod = types.ModuleType(name)
+        mod.__dict__.update(attrs)
+        sys.modules[name] = mod
+        return mod
+
+    module('BigWorld', callback=lambda delay, fn: callbacks.append(fn) or len(callbacks),
+           cancelCallback=lambda cid: None)
+    module('PlayerEvents', g_playerEvents=player_events)
+    module('debug_utils', LOG_CURRENT_EXCEPTION=lambda: (_ for _ in ()).throw(sys.exc_info()[1]),
+           LOG_ERROR=lambda *a: None)
+
+    provider = _Obj(shared=_Obj(ammo=ammo))
+
+    class _Descriptor(object):
+        def __init__(self, _):
+            pass
+
+        def __get__(self, obj, owner):
+            return provider
+
+    module('helpers', dependency=module('helpers.dependency', descriptor=_Descriptor))
+    module('skeletons')
+    module('skeletons.gui')
+    module('skeletons.gui.battle_session', IBattleSessionProvider=object)
+    gui = module('gui')
+    gui.__path__ = []
+    mods = module('gui.mods')
+    mods.__path__ = [MODS_DIR]
+    gui.mods = mods
+    gambiter = module('gui.mods.gambiter', g_guiFlash=guiflash)
+    gambiter.__path__ = []
+    mods.gambiter = gambiter
+    module('gui.mods.gambiter.flash',
+           COMPONENT_ALIGN=_Obj(CENTER='center'),
+           COMPONENT_TYPE=_Obj(LABEL='Label'),
+           COMPONENT_EVENT=_Obj(UPDATED=_Event()))
+
+
+class ModSmokeTest(unittest.TestCase):
+
+    def setUp(self):
+        self.cwd = os.getcwd()
+        self.tmp = tempfile.mkdtemp()
+        os.chdir(self.tmp)
+        self.guiflash = FakeGuiFlash()
+        self.ammo = FakeAmmo()
+        self.events = _Obj(onAvatarReady=_Event(), onAvatarBecomeNonPlayer=_Event())
+        self.callbacks = []
+        _install_stubs(self.guiflash, self.ammo, self.events, self.callbacks)
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+        shutil.rmtree(self.tmp)
+
+    def visible_texts(self):
+        lines = []
+        for index in range(12):
+            props = self.guiflash.components.get('autoloader_timer.line%d' % index, {})
+            if props.get('visible'):
+                lines.append(props['text'])
+        return lines
+
+    def test_renders_each_shell_and_writes_default_config(self):
+        mod = importlib.import_module("gui.mods.mod_autoloader_timer")
+        mod.init()
+        self.events.onAvatarReady()
+        texts = self.visible_texts()
+        self.assertEqual(len(texts), 4)
+        self.assertIn('Autoloader 1/3   full in 14.8s', texts[0])
+        self.assertIn('#1  ready', texts[1])
+        self.assertIn('#2  4.0s  (11.7s)', texts[2])
+        self.assertIn('#3  14.8s  (10.8s)', texts[3])
+        self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
+
+        self.ammo.shells = (30, 3)
+        self.ammo.clip_state = FakeState(0.0, 0.0)
+        self.callbacks[-1]()
+        self.assertIn('Autoloader 3/3', self.visible_texts()[0])
+        mod.fini()
+        self.assertEqual(self.guiflash.components, {})
+
+
+if __name__ == '__main__':
+    unittest.main()

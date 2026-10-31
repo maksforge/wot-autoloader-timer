@@ -1,0 +1,98 @@
+from __future__ import division
+
+import BigWorld
+from PlayerEvents import g_playerEvents
+from debug_utils import LOG_CURRENT_EXCEPTION
+from helpers import dependency
+from skeletons.gui.battle_session import IBattleSessionProvider
+
+from . import config, schedule
+from .view import PanelView, format_lines
+
+TICK_SECONDS = 0.1
+
+
+class AutoloaderTimer(object):
+    _sessionProvider = dependency.descriptor(IBattleSessionProvider)
+
+    def __init__(self):
+        self._settings = config.load()
+        self._view = None
+        self._callback_id = None
+        self._factor = 1.0
+
+    def start(self):
+        if not self._settings['enabled']:
+            return
+        self._view = PanelView(self._settings, self._on_moved)
+        g_playerEvents.onAvatarReady += self._on_avatar_ready
+        g_playerEvents.onAvatarBecomeNonPlayer += self._on_avatar_left
+
+    def stop(self):
+        g_playerEvents.onAvatarReady -= self._on_avatar_ready
+        g_playerEvents.onAvatarBecomeNonPlayer -= self._on_avatar_left
+        self._cancel_tick()
+        if self._view is not None:
+            self._view.destroy()
+            self._view = None
+
+    def _on_moved(self):
+        config.save(self._settings)
+
+    def _on_avatar_ready(self):
+        self._factor = 1.0
+        self._cancel_tick()
+        self._tick()
+
+    def _on_avatar_left(self):
+        self._cancel_tick()
+        if self._view is not None:
+            self._view.hide()
+
+    def _cancel_tick(self):
+        if self._callback_id is not None:
+            BigWorld.cancelCallback(self._callback_id)
+            self._callback_id = None
+
+    def _tick(self):
+        self._callback_id = BigWorld.callback(TICK_SECONDS, self._tick)
+        try:
+            self._render()
+        except Exception:
+            LOG_CURRENT_EXCEPTION()
+            self._view.hide()
+
+    def _render(self):
+        lines = self._lines()
+        if lines:
+            self._view.show(lines)
+        else:
+            self._view.hide()
+
+    def _lines(self):
+        ammo = self._sessionProvider.shared.ammo
+        if ammo is None:
+            return None
+        gun = ammo.getGunSettings()
+        if not gun.hasAutoReload() or ammo.getCurrentShellCD() is None:
+            return None
+        shells_total, shells_in_clip = ammo.getCurrentShells()
+        if shells_total < 0 or shells_in_clip < 0:
+            return None
+        clip_size = gun.clip.size
+        reload_times = gun.autoReload.reloadTime
+        if shells_in_clip >= clip_size and self._settings['hideWhenFull']:
+            return None
+        current_left = self._current_shell_time_left(ammo, reload_times, clip_size, shells_in_clip)
+        slots = schedule.build_schedule(clip_size, shells_in_clip, shells_total, reload_times, self._factor, current_left)
+        return format_lines(slots, self._settings)
+
+    def _current_shell_time_left(self, ammo, reload_times, clip_size, shells_in_clip):
+        clip_state = ammo.getPartiallyReloadingClipState()
+        if clip_state.isReloading() and clip_state.getBaseValue() > 0:
+            self._factor = schedule.reload_factor(reload_times, clip_size, 0.0, clip_state.getBaseValue(), shells_in_clip)
+            return clip_state.getTimeLeft()
+        gun_state = ammo.getGunReloadingState()
+        if shells_in_clip == 0 and gun_state.isReloading():
+            return gun_state.getTimeLeft()
+        return schedule.shell_load_time(reload_times, clip_size, shells_in_clip, self._factor)
