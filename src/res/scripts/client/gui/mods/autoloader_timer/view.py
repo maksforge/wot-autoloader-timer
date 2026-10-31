@@ -14,7 +14,7 @@ def format_segments(slots, settings):
     loaded = sum(1 for slot in slots if slot.state == schedule.LOADED)
     if loaded == len(slots):
         segments = [('%d/%d' % (loaded, len(slots)), colors['loaded'])]
-        return segments + [('%.1f' % slot.own_time, colors['shellTime']) for slot in slots]
+        return segments + [('%.1f' % time, colors['shellTime']) for time in sorted(slot.own_time for slot in slots)]
     segments = [('%d/%d' % (loaded, len(slots)), colors['count'])]
     for slot in slots:
         if slot.state == schedule.QUEUED:

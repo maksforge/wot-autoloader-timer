@@ -172,8 +172,8 @@ class ModSmokeTest(unittest.TestCase):
         self.callbacks[-1]()
         text = self.label()['text']
         self.assertIn("<font color='#C7FE48'>3/3</font>", text)
-        self.assertIn("<font color='#A8A8A8'>13.5</font>", text)
-        self.assertIn("<font color='#A8A8A8'>10.8</font>", text)
+        self.assertLess(text.index('>10.8<'), text.index('>11.7<'))
+        self.assertLess(text.index('>11.7<'), text.index('>13.5<'))
 
         self.ammo.gun.hasAutoReload = lambda: False
         self.callbacks[-1]()
