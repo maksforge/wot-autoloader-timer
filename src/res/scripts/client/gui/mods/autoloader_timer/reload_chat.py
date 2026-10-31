@@ -30,17 +30,25 @@ def _seconds(value):
     return int(math.ceil(max(0.0, value)))
 
 
+def _last_shell_text(slots, loaded, pending):
+    seconds = _seconds(schedule.full_in(slots))
+    reachable = loaded + len(pending)
+    if reachable == len(slots):
+        return 'full in %d s' % seconds
+    return '%d/%d in %d s' % (reachable, len(slots), seconds)
+
+
 def magazine_text(slots):
     loaded = sum(1 for slot in slots if slot.state == schedule.LOADED)
     pending = [slot for slot in slots if slot.state in (schedule.LOADING, schedule.QUEUED)]
-    full_in = _seconds(schedule.full_in(slots))
     if loaded == 0:
         if not pending:
             return None
-        return 'Reloading! First shell %d s, full in %d s' % (_seconds(pending[0].ready_in), full_in)
+        return 'Reloading! First shell %d s, %s' % (_seconds(pending[0].ready_in),
+                                                     _last_shell_text(slots, loaded, pending))
     text = 'Ready to fire! Magazine %d/%d' % (loaded, len(slots))
     if pending:
-        text += ', full in %d s' % full_in
+        text += ', ' + _last_shell_text(slots, loaded, pending)
     return text
 
 

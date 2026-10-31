@@ -22,7 +22,7 @@ Reloading! First shell 9 s, full in 35 s
 Ready to fire! Magazine 4/4
 ```
 
-Allies don't get the game's reload icon over your tank for that command. If team chat is unavailable (chat turned off, a chat ban, or the chat cooldown), or the ammo rack is empty, the game's own command goes out as usual. Other tanks are not affected. Turn it off with `reloadChatLine`.
+Allies don't get the game's reload icon over your tank for that command. If team chat is unavailable (chat turned off, a chat ban, or the chat cooldown), or you're out of shells (magazine and ammo rack both empty), the game's own command goes out as usual. Other tanks are not affected. Turn it off with `reloadChatLine`.
 
 ## Install
 
