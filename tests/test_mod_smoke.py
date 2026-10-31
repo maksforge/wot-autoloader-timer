@@ -160,8 +160,8 @@ class ModSmokeTest(unittest.TestCase):
         text = self.label()['text']
         self.assertTrue(self.label()['visible'])
         self.assertIn('1/3', text)
-        self.assertIn("<font color='#FFD34D'>4.0</font>", text)
-        self.assertIn("<font color='#E6E6E6'>14.8</font>", text)
+        self.assertIn("<font color='#FCAF1A'>4.0</font>", text)
+        self.assertIn("<font color='#D8D8D8'>14.8</font>", text)
         self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
 
         self.ammo.shells = (30, 3)
@@ -169,9 +169,9 @@ class ModSmokeTest(unittest.TestCase):
         self.ammo.shell_change_time = 6.75
         self.callbacks[-1]()
         text = self.label()['text']
-        self.assertIn("<font color='#8BE15F'>3/3</font>", text)
-        self.assertIn("<font color='#A0A0A0'>13.5</font>", text)
-        self.assertIn("<font color='#A0A0A0'>10.8</font>", text)
+        self.assertIn("<font color='#C7FE48'>3/3</font>", text)
+        self.assertIn("<font color='#A8A8A8'>13.5</font>", text)
+        self.assertIn("<font color='#A8A8A8'>10.8</font>", text)
 
         self.ammo.gun.hasAutoReload = lambda: False
         self.callbacks[-1]()
