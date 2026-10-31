@@ -12,15 +12,12 @@ DEFAULTS = {
     'x': 180,
     'y': 40,
     'fontSize': 16,
-    'lineHeight': 20,
-    'showOwnTime': True,
     'hideWhenFull': False,
     'colors': {
-        'header': 'FFFFFF',
+        'count': 'E6E6E6',
         'loaded': '8BE15F',
         'loading': 'FFD34D',
         'queued': 'E6E6E6',
-        'noAmmo': '808080',
     },
 }
 

@@ -3,18 +3,14 @@
 A World of Tanks mod that shows the load time of **every shell** in an autoreloader magazine (Italian tanks and any other gun with the `autoreload` mechanic), not just the one that's loading now.
 
 ```
-Autoloader 1/3   full in 14.8s
-#1  ready
-#2  4.0s  (11.7s)
-#3  14.8s  (10.8s)
+1/3  |  4.0  |  14.8
 ```
 
-- **#N  ready**: the shell is already in the magazine.
-- **#N  4.0s**: time until that shell is loaded and can be fired. Every row counts from now.
-- **(11.7s)**: how long that one shell takes to load on its own.
-- **full in**: time until the whole magazine is loaded.
+- **1/3**: shells in the magazine now.
+- **Each number**: seconds until that shell is loaded, counted from now. The yellow one is loading now.
+- When the magazine is full it shows just **3/3** in green.
 
-Times use your real reload speed: crew, rammer, food, stun and so on. The mod reads the speed from the shell that's loading now and applies the gun's per-shell reload table to the shells after it.
+The times always use your current reload speed. They're recalculated every 0.1 s from the reload time the server sends for the shell being loaded, so a damaged ammo rack, stun, or a crew member knocked out changes them right away. The rest of the magazine is predicted from the gun's per-shell reload table at that same speed.
 
 ## Install
 
@@ -29,12 +25,11 @@ The first battle writes `mods/configs/autoloader_timer/config.json`:
 | --- | --- | --- |
 | `enabled` | `true` | Turns the mod off without uninstalling it |
 | `x`, `y` | `180`, `40` | Offset from the screen centre |
-| `fontSize`, `lineHeight` | `16`, `20` | Text size and row spacing |
-| `showOwnTime` | `true` | Show the per-shell time in brackets |
+| `fontSize` | `16` | Text size |
 | `hideWhenFull` | `false` | Hide the panel while the magazine is full |
 | `colors` | | Hex colours for each row state |
 
-To move the panel, hold Ctrl to show the cursor and drag the header line. The new position is saved.
+To move the panel, hold Ctrl to show the cursor and drag it. The new position is saved.
 
 ## Build
 

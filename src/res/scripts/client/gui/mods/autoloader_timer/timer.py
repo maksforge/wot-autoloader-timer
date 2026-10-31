@@ -7,7 +7,7 @@ from helpers import dependency
 from skeletons.gui.battle_session import IBattleSessionProvider
 
 from . import config, schedule
-from .view import PanelView, format_lines
+from .view import PanelView, format_segments
 
 TICK_SECONDS = 0.1
 
@@ -63,13 +63,9 @@ class AutoloaderTimer(object):
             self._view.hide()
 
     def _render(self):
-        lines = self._lines()
-        if lines:
-            self._view.show(lines)
-        else:
-            self._view.hide()
+        self._view.show(self._segments())
 
-    def _lines(self):
+    def _segments(self):
         ammo = self._sessionProvider.shared.ammo
         if ammo is None:
             return None
@@ -85,7 +81,7 @@ class AutoloaderTimer(object):
             return None
         current_left = self._current_shell_time_left(ammo, reload_times, clip_size, shells_in_clip)
         slots = schedule.build_schedule(clip_size, shells_in_clip, shells_total, reload_times, self._factor, current_left)
-        return format_lines(slots, self._settings)
+        return format_segments(slots, self._settings)
 
     def _current_shell_time_left(self, ammo, reload_times, clip_size, shells_in_clip):
         clip_state = ammo.getPartiallyReloadingClipState()

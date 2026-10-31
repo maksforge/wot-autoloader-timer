@@ -144,30 +144,28 @@ class ModSmokeTest(unittest.TestCase):
         os.chdir(self.cwd)
         shutil.rmtree(self.tmp)
 
-    def visible_texts(self):
-        lines = []
-        for index in range(12):
-            props = self.guiflash.components.get('maksforgeAutoloaderTimerLine%d' % index, {})
-            if props.get('visible'):
-                lines.append(props['text'])
-        return lines
+    def label(self):
+        return self.guiflash.components.get('maksforgeAutoloaderTimer', {})
 
-    def test_renders_each_shell_and_writes_default_config(self):
+    def test_renders_one_line_and_writes_default_config(self):
         mod = importlib.import_module("gui.mods.mod_autoloader_timer")
         mod.init()
         self.events.onAvatarReady()
-        texts = self.visible_texts()
-        self.assertEqual(len(texts), 4)
-        self.assertIn('Autoloader 1/3   full in 14.8s', texts[0])
-        self.assertIn('#1  ready', texts[1])
-        self.assertIn('#2  4.0s  (11.7s)', texts[2])
-        self.assertIn('#3  14.8s  (10.8s)', texts[3])
+        text = self.label()['text']
+        self.assertTrue(self.label()['visible'])
+        self.assertIn('1/3', text)
+        self.assertIn("<font color='#FFD34D'>4.0</font>", text)
+        self.assertIn("<font color='#E6E6E6'>14.8</font>", text)
         self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
 
         self.ammo.shells = (30, 3)
         self.ammo.clip_state = FakeState(0.0, 0.0)
         self.callbacks[-1]()
-        self.assertIn('Autoloader 3/3', self.visible_texts()[0])
+        self.assertIn("<font color='#8BE15F'>3/3</font>", self.label()['text'])
+
+        self.ammo.gun.hasAutoReload = lambda: False
+        self.callbacks[-1]()
+        self.assertFalse(self.label()['visible'])
         mod.fini()
         self.assertEqual(self.guiflash.components, {})
 
