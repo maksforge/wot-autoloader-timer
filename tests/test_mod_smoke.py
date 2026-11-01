@@ -94,7 +94,30 @@ class _Obj(object):
         self.__dict__.update(kwargs)
 
 
-def _install_stubs(guiflash, ammo, player_events, callbacks):
+class FakeCrosshair(object):
+
+    def __init__(self):
+        self.position = (1280, 625)
+        self.onCrosshairPositionChanged = _Event()
+        self.onCrosshairSizeChanged = _Event()
+        self.onCrosshairScaleChanged = _Event()
+        self.onCrosshairViewChanged = _Event()
+
+    def getScaleFactor(self):
+        return 1.0
+
+    def getSize(self):
+        return (2560, 1440)
+
+    def getDisaredPosition(self):
+        return self.position
+
+    def move_to(self, x, y):
+        self.position = (x, y)
+        self.onCrosshairPositionChanged(x, y)
+
+
+def _install_stubs(guiflash, ammo, crosshair, player_events, callbacks):
     def module(name, **attrs):
         mod = types.ModuleType(name)
         mod.__dict__.update(attrs)
@@ -107,7 +130,6 @@ def _install_stubs(guiflash, ammo, player_events, callbacks):
     module('debug_utils', LOG_CURRENT_EXCEPTION=lambda: (_ for _ in ()).throw(sys.exc_info()[1]),
            LOG_ERROR=lambda *a: None)
 
-    crosshair = _Obj(getScaleFactor=lambda: 1.0, getSize=lambda: (2560, 1440), getDisaredPosition=lambda: (1280, 625))
     provider = _Obj(shared=_Obj(ammo=ammo, crosshair=crosshair))
 
     class _Descriptor(object):
@@ -181,8 +203,9 @@ class _StubbedGameTest(unittest.TestCase):
         self.guiflash = FakeGuiFlash()
         self.ammo = FakeAmmo()
         self.events = _Obj(onAvatarReady=_Event(), onAvatarBecomeNonPlayer=_Event())
+        self.crosshair = FakeCrosshair()
         self.callbacks = []
-        _install_stubs(self.guiflash, self.ammo, self.events, self.callbacks)
+        _install_stubs(self.guiflash, self.ammo, self.crosshair, self.events, self.callbacks)
 
     def tearDown(self):
         os.chdir(self.cwd)
@@ -200,10 +223,13 @@ class ModSmokeTest(_StubbedGameTest):
         self.events.onAvatarReady()
         text = self.label()['text']
         self.assertTrue(self.label()['visible'])
-        self.assertIn('1/3', text)
+        self.assertTrue(text.endswith("<font color='#D8D8D8'>1/3</font></font>"))
         self.assertIn("<font color='#FCAF1A'>4.0</font>", text)
         self.assertEqual((self.label()['x'], self.label()['y']), (0, -35))
         self.assertIn("<font color='#D8D8D8'>14.8</font>", text)
+
+        self.crosshair.move_to(1280, 720)
+        self.assertEqual((self.label()['x'], self.label()['y']), (0, 60))
         self.assertTrue(os.path.isfile(os.path.join('mods', 'configs', 'autoloader_timer', 'config.json')))
 
         chat_ctrl = sys.modules['gui.battle_control.controllers.chat_cmd_ctrl'].ChatCommandsController
@@ -218,7 +244,7 @@ class ModSmokeTest(_StubbedGameTest):
         self.ammo.shell_change_time = 6.75
         self.callbacks[-1]()
         text = self.label()['text']
-        self.assertIn("<font color='#C7FE48'>3/3</font>", text)
+        self.assertTrue(text.endswith("<font color='#C7FE48'>3/3</font></font>"))
         self.assertLess(text.index('>10.8<'), text.index('>11.7<'))
         self.assertLess(text.index('>11.7<'), text.index('>13.5<'))
         chat_ctrl.cooldown = False
@@ -230,6 +256,7 @@ class ModSmokeTest(_StubbedGameTest):
         self.assertFalse(self.label()['visible'])
         mod.fini()
         self.assertEqual(self.guiflash.components, {})
+        self.assertEqual(self.crosshair.onCrosshairPositionChanged.handlers, [])
 
 
 def _slots(*states_and_times):
