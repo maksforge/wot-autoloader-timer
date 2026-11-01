@@ -12,16 +12,17 @@ _SHADOW = {'color': 0x000000, 'alpha': 0.8, 'blurX': 2, 'blurY': 2, 'strength': 
 def format_segments(slots, settings):
     colors = settings['colors']
     loaded = sum(1 for slot in slots if slot.state == schedule.LOADED)
+    count = '%d/%d' % (loaded, len(slots))
     if loaded == len(slots):
-        segments = [('%d/%d' % (loaded, len(slots)), colors['loaded'])]
-        return segments + [('%.1f' % time, colors['shellTime']) for time in sorted(slot.own_time for slot in slots)]
-    segments = [('%d/%d' % (loaded, len(slots)), colors['count'])]
+        times = [('%.1f' % time, colors['shellTime']) for time in sorted(slot.own_time for slot in slots)]
+        return times + [(count, colors['loaded'])]
+    segments = []
     for slot in slots:
         if slot.state == schedule.LOADING:
             segments.append(('%.1f' % max(0.0, slot.ready_in), colors['loading']))
         elif slot.state == schedule.QUEUED:
             segments.append(('%.1f' % max(0.0, slot.ready_in), colors['queued']))
-    return segments
+    return segments + [(count, colors['count'])]
 
 
 class PanelView(object):

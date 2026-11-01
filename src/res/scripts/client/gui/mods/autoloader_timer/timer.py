@@ -19,6 +19,7 @@ class AutoloaderTimer(object):
         self._settings = config.load()
         self._view = None
         self._callback_id = None
+        self._crosshair = None
         self._factor = 1.0
 
     def start(self):
@@ -32,6 +33,7 @@ class AutoloaderTimer(object):
         g_playerEvents.onAvatarReady -= self._on_avatar_ready
         g_playerEvents.onAvatarBecomeNonPlayer -= self._on_avatar_left
         self._cancel_tick()
+        self._unfollow_crosshair()
         if self._view is not None:
             self._view.destroy()
             self._view = None
@@ -46,10 +48,12 @@ class AutoloaderTimer(object):
     def _on_avatar_ready(self):
         self._factor = 1.0
         self._cancel_tick()
+        self._follow_crosshair()
         self._tick()
 
     def _on_avatar_left(self):
         self._cancel_tick()
+        self._unfollow_crosshair()
         if self._view is not None:
             self._view.hide()
 
@@ -67,13 +71,36 @@ class AutoloaderTimer(object):
             self._view.hide()
 
     def _render(self):
-        self._view.set_anchor(*self._crosshair_offset())
         self._view.show(self._segments())
 
-    def _crosshair_offset(self):
+    def _crosshair_events(self, crosshair):
+        return (crosshair.onCrosshairPositionChanged, crosshair.onCrosshairSizeChanged,
+                crosshair.onCrosshairScaleChanged, crosshair.onCrosshairViewChanged)
+
+    def _follow_crosshair(self):
+        self._unfollow_crosshair()
         crosshair = self._sessionProvider.shared.crosshair
         if crosshair is None:
-            return (0, 0)
+            return
+        self._crosshair = crosshair
+        for event in self._crosshair_events(crosshair):
+            event += self._on_crosshair_changed
+        self._on_crosshair_changed()
+
+    def _unfollow_crosshair(self):
+        if self._crosshair is None:
+            return
+        for event in self._crosshair_events(self._crosshair):
+            event -= self._on_crosshair_changed
+        self._crosshair = None
+
+    def _on_crosshair_changed(self, *_):
+        try:
+            self._view.set_anchor(*self._crosshair_offset(self._crosshair))
+        except Exception:
+            LOG_CURRENT_EXCEPTION()
+
+    def _crosshair_offset(self, crosshair):
         scale = max(crosshair.getScaleFactor(), 1.0)
         width, height = crosshair.getSize()
         x, y = crosshair.getDisaredPosition()

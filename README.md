@@ -3,12 +3,12 @@
 A World of Tanks mod that shows the load time of **every shell** in an autoreloader magazine (Italian tanks and any other gun with the `autoreload` mechanic), not just the one that's loading now.
 
 ```
-1/4   4.5   16.2   26.7   35.5
+4.5   16.2   26.7   35.5   1/4
 ```
 
-- **1/4**: shells in the magazine now.
 - **Each number**: seconds until that shell is ready, counted from now. The amber one is loading now.
-- When the magazine is full it shows **3/3** in green, then each shell's own load time at your current reload speed in grey, fastest first, for example `3/3   10.8   11.7   13.5`.
+- **1/4** at the end: shells in the magazine now.
+- When the magazine is full it shows each shell's own load time at your current reload speed in grey, fastest first, then **3/3** in green, for example `10.8   11.7   13.5   3/3`.
 
 The times always use your current reload speed. They're recalculated every 0.1 s from the reload time the server sends for the shell being loaded, so a damaged ammo rack, stun, or a crew member knocked out changes them right away. The rest of the magazine is predicted from the gun's per-shell reload table at that same speed.
 
@@ -36,7 +36,7 @@ The first battle writes `mods/configs/autoloader_timer/config.json`:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `enabled` | `true` | Turns the mod off without uninstalling it |
-| `x`, `y` | `0`, `60` | Offset from the crosshair, which the line follows across arcade, sniper and arty views |
+| `x`, `y` | `0`, `60` | Offset from the crosshair, which the line follows frame by frame across arcade, sniper and arty views |
 | `fontSize` | `14` | Text size |
 | `hideWhenFull` | `false` | Hide the panel while the magazine is full |
 | `reloadChatLine` | `true` | Replace the reload quick command with the magazine status line in autoreloaders |
@@ -56,7 +56,7 @@ python2.7 tests/test_mod_smoke.py
 
 ## How it works
 
-`gun.autoreload.reloadTime` holds one base time per magazine slot. The first entry is the shell that fills the magazine, and the last is the shell loaded into an empty one. Each frame, the mod reads the shell loading now from the game's `AmmoController`. It takes the remaining time from the server, works out your reload factor from that shell's base time, and adds the scaled time of each shell after it.
+`gun.autoreload.reloadTime` holds one base time per magazine slot. The first entry is the shell that fills the magazine, and the last is the shell loaded into an empty one. Every 0.1 s, the mod reads the shell loading now from the game's `AmmoController`. It takes the remaining time from the server, works out your reload factor from that shell's base time, and adds the scaled time of each shell after it.
 
 ## Support
 
