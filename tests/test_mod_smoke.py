@@ -190,6 +190,7 @@ def _install_stubs(guiflash, ammo, crosshair, player_events, callbacks):
            COMPONENT_ALIGN=_Obj(CENTER='center'),
            COMPONENT_TYPE=_Obj(LABEL='Label'),
            COMPONENT_EVENT=_Obj(UPDATED=_Event()))
+    return provider
 
 
 class _StubbedGameTest(unittest.TestCase):
@@ -205,7 +206,7 @@ class _StubbedGameTest(unittest.TestCase):
         self.events = _Obj(onAvatarReady=_Event(), onAvatarBecomeNonPlayer=_Event())
         self.crosshair = FakeCrosshair()
         self.callbacks = []
-        _install_stubs(self.guiflash, self.ammo, self.crosshair, self.events, self.callbacks)
+        self.provider = _install_stubs(self.guiflash, self.ammo, self.crosshair, self.events, self.callbacks)
 
     def tearDown(self):
         os.chdir(self.cwd)
@@ -216,6 +217,13 @@ class ModSmokeTest(_StubbedGameTest):
 
     def label(self):
         return self.guiflash.components.get('maksforgeAutoloaderTimer', {})
+
+    def label_position(self):
+        return (self.label()['x'], self.label()['y'])
+
+    def crosshair_handlers(self, crosshair):
+        return [crosshair.onCrosshairPositionChanged.handlers, crosshair.onCrosshairSizeChanged.handlers,
+                crosshair.onCrosshairScaleChanged.handlers, crosshair.onCrosshairViewChanged.handlers]
 
     def test_renders_one_line_and_writes_default_config(self):
         mod = importlib.import_module("gui.mods.mod_autoloader_timer")
@@ -256,7 +264,29 @@ class ModSmokeTest(_StubbedGameTest):
         self.assertFalse(self.label()['visible'])
         mod.fini()
         self.assertEqual(self.guiflash.components, {})
-        self.assertEqual(self.crosshair.onCrosshairPositionChanged.handlers, [])
+        self.assertEqual(self.crosshair_handlers(self.crosshair), [[], [], [], []])
+
+    def test_follows_each_battles_crosshair_and_lets_go_after_it(self):
+        mod = importlib.import_module("gui.mods.mod_autoloader_timer")
+        mod.init()
+        self.events.onAvatarReady()
+        old = self.crosshair
+        self.events.onAvatarBecomeNonPlayer()
+        self.assertEqual(self.crosshair_handlers(old), [[], [], [], []])
+
+        new = FakeCrosshair()
+        new.position = (1280, 720)
+        self.provider.shared.crosshair = new
+        self.events.onAvatarReady()
+        self.assertEqual(self.label_position(), (0, 60))
+        new.move_to(1300, 720)
+        self.assertEqual(self.label_position(), (20, 60))
+        old.move_to(1280, 900)
+        self.assertEqual(self.label_position(), (20, 60))
+        self.assertEqual(self.crosshair_handlers(old), [[], [], [], []])
+
+        mod.fini()
+        self.assertEqual(self.crosshair_handlers(new), [[], [], [], []])
 
 
 def _slots(*states_and_times):
